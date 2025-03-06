@@ -1,5 +1,5 @@
 import { HttpService } from '@nestjs/axios';
-import { Headers, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NewUser } from 'src/model/new-user';
 import { UserRepresentation, Credential } from './dto/user-representation';
@@ -12,7 +12,7 @@ export class KeycloakService {
     private readonly httpService: HttpService,
   ) {}
   keycloakAdminUrl = this.configService.get<string>('keycloak_admin.baseURL');
-  keycloakLoginUrl = this.configService.get<string>('keycloak.login_URL');
+  keycloakLoginUrl = this.configService.get<string>('keycloak.login_url');
   clientId = this.configService.get<string>('keycloak_admin.clientId');
   clientSecret = this.configService.get<string>('keycloak_admin.clientSecret');
   lifespan = this.configService.get<string>('keycloak_admin.linkLifeSpan');
@@ -46,16 +46,15 @@ export class KeycloakService {
         }),
       );
     } catch (error) {
-      console.log(error);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      throw new Error('Failed to create a user: ' + error['message']);
+      const errorMesasage = <string>error.response.data.errorMessage;
+      throw new Error('Failed to create a user: ' + errorMesasage);
     }
   }
   async getAdminToken(): Promise<string> {
     const formData = new URLSearchParams();
     formData.append('client_id', <string>this.clientId);
+    formData.append('grant_type', 'client_credentials');
     formData.append('client_secret', <string>this.clientSecret);
-    formData.append('grant_type', 'client-credentials');
     try {
       const response = await firstValueFrom(
         this.httpService.post(
@@ -74,7 +73,13 @@ export class KeycloakService {
       return access_token;
     } catch (error) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      throw new Error(`Client login failed: ${error.message}`);
+      throw new Error(
+        `Client login failed: ${error.code}` +
+          '\n' +
+          'URL: ' +
+          <string>this.keycloakLoginUrl +
+          '\n',
+      );
     }
   }
 }
