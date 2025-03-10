@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { NewUser } from 'src/model/new-user';
 import { UserRepresentation, Credential } from './dto/user-representation';
 import { firstValueFrom } from 'rxjs';
+import { UpdateUser } from 'src/model/update-user';
 
 @Injectable()
 export class KeycloakService {
@@ -44,6 +45,26 @@ export class KeycloakService {
             Authorization: `Bearer ${token}`,
           },
         }),
+      );
+    } catch (error) {
+      const errorMesasage = <string>error.response.data.errorMessage;
+      throw new Error('Failed to create a user: ' + errorMesasage);
+    }
+  }
+  async updateUser(updateUser: UpdateUser, userId: string): Promise<void> {
+    try {
+      const token = await this.getAdminToken();
+
+      await firstValueFrom(
+        this.httpService.put(
+          `${this.keycloakAdminUrl}/users/${userId}`,
+          updateUser,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        ),
       );
     } catch (error) {
       const errorMesasage = <string>error.response.data.errorMessage;
